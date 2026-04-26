@@ -329,8 +329,7 @@ export default function AgregarPage() {
             type="file"
             accept="image/*"
             multiple
-            capture="environment"
-            className="hidden"
+              className="hidden"
             onChange={handlePhotoUpload}
           />
 

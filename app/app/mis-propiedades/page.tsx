@@ -2,18 +2,21 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { PlusCircle, Eye, Share2, Edit } from 'lucide-react'
+import { PlusCircle, Eye, Share2, Edit, Check, Copy } from 'lucide-react'
 import { supabase, PropertyRow } from '@/lib/supabase'
 import { formatPrice } from '@/lib/data'
 
 export default function MisPropiedadesPage() {
   const [properties, setProperties] = useState<PropertyRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [userId, setUserId] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
+      setUserId(user.id)
 
       const { data } = await supabase
         .from('properties')
@@ -26,6 +29,23 @@ export default function MisPropiedadesPage() {
     }
     load()
   }, [])
+
+  async function handleShare(propertyId: string) {
+    const url = `${window.location.origin}/p/${propertyId}?asesor=${userId}`
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Propiedad en Nido', url })
+      } else {
+        await navigator.clipboard.writeText(url)
+        setCopiedId(propertyId)
+        setTimeout(() => setCopiedId(null), 2500)
+      }
+    } catch {
+      await navigator.clipboard.writeText(url)
+      setCopiedId(propertyId)
+      setTimeout(() => setCopiedId(null), 2500)
+    }
+  }
 
   if (loading) {
     return (
@@ -44,11 +64,9 @@ export default function MisPropiedadesPage() {
           <h1 className="text-xl font-bold text-gray-900">Mis propiedades</h1>
           <p className="text-sm text-gray-500">{properties.length} propiedades en tu inventario</p>
         </div>
-        <Link
-          href="/app/agregar"
+        <Link href="/app/agregar"
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
-          style={{ background: '#0F3460' }}
-        >
+          style={{ background: '#0F3460' }}>
           <PlusCircle className="w-4 h-4" />
           <span className="hidden sm:inline">Agregar</span>
         </Link>
@@ -57,11 +75,9 @@ export default function MisPropiedadesPage() {
       {properties.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
           <p className="text-gray-400 mb-4">Sin propiedades aún</p>
-          <Link
-            href="/app/agregar"
+          <Link href="/app/agregar"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
-            style={{ background: '#0F3460' }}
-          >
+            style={{ background: '#0F3460' }}>
             <PlusCircle className="w-4 h-4" />
             Agregar primera propiedad
           </Link>
@@ -70,7 +86,7 @@ export default function MisPropiedadesPage() {
         <div className="space-y-3">
           {properties.map((property) => (
             <div key={property.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="flex gap-0">
+              <div className="flex">
                 {/* Image */}
                 <div className="w-28 h-24 flex-shrink-0 relative">
                   {property.images[0] ? (
@@ -104,20 +120,23 @@ export default function MisPropiedadesPage() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-2 mt-2">
-                    <Link
-                      href={`/propiedades/${property.id}`}
-                      className="text-xs font-medium px-2.5 py-1 rounded-lg border border-gray-200 text-gray-600 hover:border-blue-900 hover:text-blue-900 transition-colors"
-                    >
+                    <Link href={`/propiedades/${property.id}`}
+                      className="text-xs font-medium px-2.5 py-1 rounded-lg border border-gray-200 text-gray-600 hover:border-blue-900 hover:text-blue-900 transition-colors">
                       Ver ficha
                     </Link>
-                    <button className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg border border-gray-200 text-gray-600 hover:border-green-500 hover:text-green-600 transition-colors">
-                      <Share2 className="w-3 h-3" />
-                      Compartir
-                    </button>
-                    <Link
-                      href={`/app/agregar?edit=${property.id}`}
-                      className="ml-auto text-gray-400 hover:text-blue-900 transition-colors p-1"
+                    <button
+                      onClick={() => handleShare(property.id)}
+                      className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg border border-gray-200 transition-colors"
+                      style={copiedId === property.id ? { borderColor: '#16C79A', color: '#16C79A' } : { color: '#6B7280' }}
                     >
+                      {copiedId === property.id ? (
+                        <><Check className="w-3 h-3" />¡Copiado!</>
+                      ) : (
+                        <><Share2 className="w-3 h-3" />Compartir</>
+                      )}
+                    </button>
+                    <Link href={`/app/agregar?edit=${property.id}`}
+                      className="ml-auto text-gray-400 hover:text-blue-900 transition-colors p-1">
                       <Edit className="w-4 h-4" />
                     </Link>
                   </div>

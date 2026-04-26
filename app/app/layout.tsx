@@ -159,8 +159,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="text-sm font-semibold text-gray-900">{profile.name}</div>
           </div>
           {isOnTrial && daysLeft > 0 && (
-            <Link href="#" className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white" style={{ background: '#E8A020' }}>
-              {daysLeft}d restantes
+            <Link href="#" className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white whitespace-nowrap" style={{ background: '#E8A020' }}>
+              {daysLeft} días gratis
             </Link>
           )}
         </header>
