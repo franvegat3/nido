@@ -50,6 +50,8 @@ function PropiedadesContent() {
   const [city, setCity] = useState(searchParams.get('ciudad') ?? '')
   const [type, setType] = useState('')
   const [operation, setOperation] = useState('')
+  const [minBedrooms, setMinBedrooms] = useState(0)
+  const [sortPrice, setSortPrice] = useState<'none' | 'asc' | 'desc'>('none')
   const [showFilters, setShowFilters] = useState(false)
   const [view, setView] = useState<'grid' | 'list'>('grid')
 
@@ -69,17 +71,27 @@ function PropiedadesContent() {
   }, [])
 
   const results = useMemo(() => {
-    return allProperties.filter((p) => {
+    let filtered = allProperties.filter((p) => {
       const q = keyword.toLowerCase()
       if (q && !p.title.toLowerCase().includes(q) && !p.city.toLowerCase().includes(q) && !p.colonia.toLowerCase().includes(q)) return false
       if (city && city !== 'Todas' && p.city !== city) return false
       if (type && type !== 'Todos' && p.type !== type) return false
       if (operation && operation !== 'Todos' && p.operation !== operation) return false
+      if (minBedrooms > 0 && (p.bedrooms === null || p.bedrooms < minBedrooms)) return false
       return true
     })
-  }, [allProperties, keyword, city, type, operation])
+    if (sortPrice === 'asc') filtered = [...filtered].sort((a, b) => a.price - b.price)
+    if (sortPrice === 'desc') filtered = [...filtered].sort((a, b) => b.price - a.price)
+    return filtered
+  }, [allProperties, keyword, city, type, operation, minBedrooms, sortPrice])
 
-  const activeFilters = [city && city !== 'Todas' && city, type && type !== 'Todos' && type, operation && operation !== 'Todos' && operation].filter(Boolean)
+  const activeFilters = [
+    city && city !== 'Todas' && city,
+    type && type !== 'Todos' && type,
+    operation && operation !== 'Todos' && operation,
+    minBedrooms > 0 && `${minBedrooms}+ rec.`,
+    sortPrice !== 'none' && (sortPrice === 'asc' ? 'Precio ↑' : 'Precio ↓'),
+  ].filter(Boolean)
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -133,6 +145,22 @@ function PropiedadesContent() {
                 {t}
               </button>
             ))}
+            <div className="w-px h-6 bg-gray-200 self-center flex-shrink-0" />
+            {[1, 2, 3, 4].map((n) => (
+              <button key={n} onClick={() => setMinBedrooms(minBedrooms === n ? 0 : n)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${minBedrooms === n ? 'bg-blue-900 text-white border-blue-900' : 'bg-white text-gray-600 border-gray-200'}`}>
+                {n}+ rec
+              </button>
+            ))}
+            <div className="w-px h-6 bg-gray-200 self-center flex-shrink-0" />
+            <button onClick={() => setSortPrice(sortPrice === 'asc' ? 'none' : 'asc')}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${sortPrice === 'asc' ? 'bg-blue-900 text-white border-blue-900' : 'bg-white text-gray-600 border-gray-200'}`}>
+              Precio ↑
+            </button>
+            <button onClick={() => setSortPrice(sortPrice === 'desc' ? 'none' : 'desc')}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${sortPrice === 'desc' ? 'bg-blue-900 text-white border-blue-900' : 'bg-white text-gray-600 border-gray-200'}`}>
+              Precio ↓
+            </button>
           </div>
 
           {showFilters && (
@@ -159,7 +187,7 @@ function PropiedadesContent() {
                 </select>
               </div>
               <div className="flex items-end">
-                <button onClick={() => { setKeyword(''); setCity(''); setType(''); setOperation('') }}
+                <button onClick={() => { setKeyword(''); setCity(''); setType(''); setOperation(''); setMinBedrooms(0); setSortPrice('none') }}
                   className="w-full py-1.5 rounded-lg text-sm text-gray-600 border border-gray-200 bg-white">
                   Limpiar filtros
                 </button>
@@ -199,7 +227,7 @@ function PropiedadesContent() {
             <Search className="w-12 h-12 text-gray-300 mx-auto mb-3" />
             <h3 className="text-lg font-semibold text-gray-700 mb-1">No encontramos propiedades</h3>
             <p className="text-gray-400 text-sm">Prueba con otros filtros o palabras clave</p>
-            <button onClick={() => { setKeyword(''); setCity(''); setType(''); setOperation('') }}
+            <button onClick={() => { setKeyword(''); setCity(''); setType(''); setOperation(''); setMinBedrooms(0); setSortPrice('none') }}
               className="mt-4 px-4 py-2 rounded-xl text-sm font-medium text-white" style={{ background: '#0F3460' }}>
               Ver todas las propiedades
             </button>

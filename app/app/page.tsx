@@ -6,6 +6,52 @@ import { Building2, Eye, MessageCircle, PlusCircle, ChevronRight, Share2, Trendi
 import { supabase, PropertyRow, Profile } from '@/lib/supabase'
 import { formatPrice } from '@/lib/data'
 
+const DEMO_PROPERTIES = [
+  {
+    title: 'Casa moderna en Providencia',
+    description: 'Hermosa casa de 3 recámaras en una de las mejores colonias de Guadalajara. Cuenta con jardín privado, cocina integral y acabados de lujo. A 5 minutos del Parque Ávila Camacho.',
+    type: 'Casa',
+    operation: 'Venta' as const,
+    price: 4500000,
+    area: 180,
+    bedrooms: 3,
+    bathrooms: 2,
+    parking: 2,
+    address: 'Av. Providencia 1234',
+    colonia: 'Providencia',
+    city: 'Guadalajara',
+    state: 'Jalisco',
+    amenities: ['Jardín', 'Cocina equipada', 'Vigilancia', 'Estacionamiento extra'],
+    images: [
+      'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1560448204-603b3fc33ddc?w=800&auto=format&fit=crop',
+    ],
+    active: true,
+  },
+  {
+    title: 'Departamento en Zona Expo',
+    description: 'Departamento ejecutivo en el corazón de Guadalajara. Piso 8, vista panorámica, gym y área de coworking en el edificio. Ideal para inversión o primera vivienda.',
+    type: 'Departamento',
+    operation: 'Renta' as const,
+    price: 18000,
+    area: 95,
+    bedrooms: 2,
+    bathrooms: 2,
+    parking: 1,
+    address: 'Av. Américas 456',
+    colonia: 'Zona Expo',
+    city: 'Guadalajara',
+    state: 'Jalisco',
+    amenities: ['Gimnasio', 'Roof garden', 'Seguridad 24/7', 'Aire acondicionado'],
+    images: [
+      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&auto=format&fit=crop',
+    ],
+    active: true,
+  },
+]
+
 export default function DashboardPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [properties, setProperties] = useState<PropertyRow[]>([])
@@ -24,8 +70,23 @@ export default function DashboardPage() {
       ])
 
       if (profileRes.data) setProfile(profileRes.data)
-      if (propertiesRes.data) setProperties(propertiesRes.data)
       setLeadCount(leadsRes.count ?? 0)
+
+      const props = propertiesRes.data ?? []
+
+      // Auto-create demo properties for new users with zero properties
+      const demoKey = `nido_demo_${user.id}`
+      if (props.length === 0 && !localStorage.getItem(demoKey)) {
+        const inserts = DEMO_PROPERTIES.map((p) => ({ ...p, owner_id: user.id }))
+        const { data: newProps } = await supabase.from('properties').insert(inserts).select()
+        if (newProps && newProps.length > 0) {
+          localStorage.setItem(demoKey, newProps.map((p) => p.id).join(','))
+          setProperties(newProps)
+        }
+      } else {
+        setProperties(props)
+      }
+
       setLoading(false)
     }
     load()

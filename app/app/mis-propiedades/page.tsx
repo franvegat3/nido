@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { PlusCircle, Eye, Share2, Edit, Check, Copy } from 'lucide-react'
+import { PlusCircle, Eye, Share2, Edit, Check, Copy, Sparkles } from 'lucide-react'
 import { supabase, PropertyRow } from '@/lib/supabase'
 import { formatPrice } from '@/lib/data'
 
@@ -11,12 +11,17 @@ export default function MisPropiedadesPage() {
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [demoIds, setDemoIds] = useState<string[]>([])
 
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
       setUserId(user.id)
+
+      // Check for demo properties
+      const stored = localStorage.getItem(`nido_demo_${user.id}`)
+      if (stored) setDemoIds(stored.split(','))
 
       const { data } = await supabase
         .from('properties')
@@ -71,6 +76,16 @@ export default function MisPropiedadesPage() {
           <span className="hidden sm:inline">Agregar</span>
         </Link>
       </div>
+
+      {demoIds.length > 0 && properties.some((p) => demoIds.includes(p.id)) && (
+        <div className="flex items-start gap-3 px-4 py-3 rounded-xl border border-amber-200 bg-amber-50">
+          <Sparkles className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-amber-800">Estas son propiedades de ejemplo</p>
+            <p className="text-xs text-amber-700 mt-0.5">Las creamos para que veas cómo funciona Nido. Puedes editarlas o agregar las tuyas.</p>
+          </div>
+        </div>
+      )}
 
       {properties.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
