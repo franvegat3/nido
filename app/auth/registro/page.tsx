@@ -19,6 +19,7 @@ export default function RegistroPage() {
   const [step, setStep] = useState(1)
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({
     name: '',
@@ -74,8 +75,24 @@ export default function RegistroPage() {
     }
 
     setLoading(false)
-    router.push('/app')
-    router.refresh()
+    setSuccess(true)
+    setTimeout(() => { router.push('/app'); router.refresh() }, 1800)
+  }
+
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: '#F8F7F4' }}>
+        <div className="text-center">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-5" style={{ background: '#16C79A15' }}>
+            <Check className="w-10 h-10" style={{ color: '#16C79A' }} />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Bienvenido a Nido!</h2>
+          <p className="text-gray-500 text-sm mb-1">Tu cuenta está lista.</p>
+          <p className="text-gray-400 text-xs">Preparando tu panel...</p>
+          <div className="w-6 h-6 border-2 border-blue-900 border-t-transparent rounded-full animate-spin mx-auto mt-5" />
+        </div>
+      </div>
+    )
   }
 
   return (

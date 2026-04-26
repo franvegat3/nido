@@ -25,17 +25,20 @@ export default function Home() {
         <div className="relative max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 mb-6 text-sm">
             <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-            Prueba gratis 30 días — Sin tarjeta de crédito
+            30 días gratis · Sin tarjeta · Sin límite de propiedades
           </div>
 
           <h1 className="text-3xl md:text-5xl font-bold mb-4 leading-tight">
-            Tu inventario inmobiliario,
+            Publica ilimitado y comparte
             <br />
-            <span style={{ color: '#E8A020' }}>siempre en tu celular</span>
+            <span style={{ color: '#E8A020' }}>con tu WhatsApp incluido</span>
           </h1>
 
-          <p className="text-blue-100 text-lg mb-8 max-w-2xl mx-auto">
-            Publica propiedades en 3 minutos, compártelas con tus clientes con tus datos de contacto, y cierra más ventas. Desde $299 MXN/mes.
+          <p className="text-blue-100 text-lg mb-3 max-w-2xl mx-auto">
+            Sube una propiedad en 3 minutos desde tu celular. Tu cliente recibe el link con <strong>tu nombre y número</strong>, no el de la plataforma. Sin pagar por propiedad.
+          </p>
+          <p className="text-blue-200 text-sm mb-8 max-w-xl mx-auto">
+            Ideal para asesores en Guadalajara, Monterrey y toda México · Desde $299 MXN/mes por toda tu agencia
           </p>
 
           {/* Search bar */}
@@ -264,14 +267,15 @@ export default function Home() {
 
       {/* CTA banner */}
       <section className="py-12 px-4 text-white text-center" style={{ background: 'linear-gradient(135deg, #0F3460, #1a4b8a)' }}>
-        <h2 className="text-2xl font-bold mb-3">Empieza hoy — gratis</h2>
-        <p className="text-blue-200 mb-6 max-w-md mx-auto">Únete a más de 3,200 asesores inmobiliarios que ya usan Nido para publicar y compartir propiedades.</p>
+        <h2 className="text-2xl font-bold mb-3">¿Sigues pagando por propiedad?</h2>
+        <p className="text-blue-200 mb-2 max-w-md mx-auto">Con Nido publicas <strong>ilimitado</strong> por $299/mes. Sin tarifas extra, sin sorpresas. El link que compartes lleva <strong>tu WhatsApp</strong>, no el de la plataforma.</p>
+        <p className="text-blue-300 text-sm mb-6">Únete a +3,200 asesores en México · 30 días gratis sin tarjeta</p>
         <Link
           href="/auth/registro"
           className="inline-block px-8 py-3 rounded-xl font-semibold text-blue-900 transition-transform hover:scale-105"
           style={{ background: '#E8A020' }}
         >
-          Crear cuenta gratis
+          Crear cuenta gratis — sin tarjeta
         </Link>
       </section>
 

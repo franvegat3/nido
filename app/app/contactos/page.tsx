@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { MessageCircle, Phone, Search, X } from 'lucide-react'
+import { MessageCircle, Phone, Search, X, Share2 } from 'lucide-react'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
 type Lead = {
@@ -14,15 +15,6 @@ type Lead = {
   created_at: string
   property_id: string | null
 }
-
-// Mock contacts for demo when DB is empty
-const MOCK_CONTACTS = [
-  { id: '1', name: 'María García', phone: '+52 33 9876 0001', email: null, message: 'Me interesa la casa', source: 'whatsapp', created_at: new Date().toISOString(), property_id: null },
-  { id: '2', name: 'Roberto Leal', phone: '+52 81 1234 5678', email: 'roberto@email.com', message: null, source: 'form', created_at: new Date(Date.now() - 86400000).toISOString(), property_id: null },
-  { id: '3', name: 'Ana Martínez', phone: '+52 33 5555 9999', email: null, message: 'Quiero información', source: 'whatsapp', created_at: new Date(Date.now() - 86400000 * 3).toISOString(), property_id: null },
-  { id: '4', name: 'Carlos Torres', phone: '+52 55 8888 1234', email: 'carlos@email.com', message: null, source: 'form', created_at: new Date(Date.now() - 86400000 * 6).toISOString(), property_id: null },
-  { id: '5', name: 'Sofía Ramos', phone: '+52 33 2222 3333', email: null, message: 'Cuánto cuesta?', source: 'whatsapp', created_at: new Date(Date.now() - 86400000 * 8).toISOString(), property_id: null },
-]
 
 function relativeDate(iso: string) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -40,7 +32,7 @@ export default function ContactosPage() {
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setLeads(MOCK_CONTACTS); setLoading(false); return }
+      if (!user) { setLoading(false); return }
 
       const { data } = await supabase
         .from('leads')
@@ -48,7 +40,7 @@ export default function ContactosPage() {
         .eq('advisor_id', user.id)
         .order('created_at', { ascending: false })
 
-      setLeads(data && data.length > 0 ? data : MOCK_CONTACTS)
+      setLeads(data ?? [])
       setLoading(false)
     }
     load()
@@ -66,27 +58,47 @@ export default function ContactosPage() {
     <div className="max-w-xl space-y-4">
       <div>
         <h1 className="text-xl font-bold text-gray-900">Contactos</h1>
-        <p className="text-sm text-gray-500">{leads.length} personas que te contactaron</p>
+        <p className="text-sm text-gray-500">{leads.length} {leads.length === 1 ? 'persona que te contactó' : 'personas que te contactaron'}</p>
       </div>
 
       {/* Search */}
-      <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2.5 border border-gray-200">
-        <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
-        <input
-          type="text"
-          placeholder="Buscar por nombre, teléfono o email..."
-          className="flex-1 bg-transparent text-sm outline-none text-gray-900 placeholder:text-gray-400"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        {query && (
-          <button onClick={() => setQuery('')}><X className="w-4 h-4 text-gray-400" /></button>
-        )}
-      </div>
+      {leads.length > 0 && (
+        <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2.5 border border-gray-200">
+          <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <input
+            type="text"
+            placeholder="Buscar por nombre, teléfono o email..."
+            className="flex-1 bg-transparent text-sm outline-none text-gray-900 placeholder:text-gray-400"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          {query && (
+            <button onClick={() => setQuery('')}><X className="w-4 h-4 text-gray-400" /></button>
+          )}
+        </div>
+      )}
 
       {loading ? (
         <div className="space-y-2">
           {[1, 2, 3].map((i) => <div key={i} className="bg-white rounded-2xl border border-gray-100 h-20 animate-pulse" />)}
+        </div>
+      ) : leads.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
+          <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: '#0F346015' }}>
+            <MessageCircle className="w-7 h-7" style={{ color: '#0F3460' }} />
+          </div>
+          <h3 className="font-semibold text-gray-900 mb-2">Aún no tienes contactos</h3>
+          <p className="text-sm text-gray-500 mb-6 max-w-xs mx-auto">
+            Comparte el link de una propiedad con tus datos para empezar a recibir leads directamente aquí.
+          </p>
+          <Link
+            href="/app/mis-propiedades"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-white text-sm transition-opacity hover:opacity-90"
+            style={{ background: '#0F3460' }}
+          >
+            <Share2 className="w-4 h-4" />
+            Ir a compartir una propiedad
+          </Link>
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-12 text-gray-400 text-sm">
@@ -115,7 +127,7 @@ export default function ContactosPage() {
               </div>
               <div className="flex gap-1.5 flex-shrink-0">
                 <a
-                  href={`https://wa.me/${contact.phone.replace(/\D/g, '')}?text=Hola+${encodeURIComponent(contact.name)}`}
+                  href={`https://wa.me/${contact.phone.replace(/\D/g, '')}?text=Hola+${encodeURIComponent(contact.name)}%2C+te+contacto+por+la+propiedad+que+viste+en+Nido.`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-8 h-8 rounded-xl flex items-center justify-center"
