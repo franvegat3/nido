@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Camera, X, Plus, Check, ChevronLeft, Info, Loader2 } from 'lucide-react'
+import { Camera, Image as ImageIcon, X, Plus, Check, ChevronLeft, Info, Loader2, Copy, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
@@ -30,11 +30,16 @@ const STEPS = ['Tipo y precio', 'Detalles', 'Ubicación', 'Fotos', 'Descripción
 
 export default function AgregarPage() {
   const router = useRouter()
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [publishedId, setPublishedId] = useState<string | null>(null)
+  const [publishedUserId, setPublishedUserId] = useState<string | null>(null)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
   const [photos, setPhotos] = useState<string[]>([])
   const [newAmenity, setNewAmenity] = useState('')
@@ -73,10 +78,10 @@ export default function AgregarPage() {
     if (!files.length) return
 
     setUploadingPhoto(true)
+    setUploadError('')
     const { data: { user } } = await supabase.auth.getUser()
 
     for (const file of files) {
-      // Client-side resize/compress for mobile (keep under 1.5MB)
       const ext = file.name.split('.').pop() ?? 'jpg'
       const folder = user?.id ?? 'anonymous'
       const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
@@ -85,7 +90,9 @@ export default function AgregarPage() {
         .from('property-images')
         .upload(path, file, { contentType: file.type, upsert: false })
 
-      if (!upError && data) {
+      if (upError) {
+        setUploadError(`Error al subir "${file.name}": ${upError.message}`)
+      } else if (data) {
         const { data: urlData } = supabase.storage
           .from('property-images')
           .getPublicUrl(data.path)
@@ -94,8 +101,7 @@ export default function AgregarPage() {
     }
 
     setUploadingPhoto(false)
-    // Reset input so same file can be re-selected
-    if (fileInputRef.current) fileInputRef.current.value = ''
+    e.target.value = ''
   }
 
   async function handlePublish(active: boolean) {
@@ -109,7 +115,7 @@ export default function AgregarPage() {
       return
     }
 
-    const { error: dbError } = await supabase.from('properties').insert({
+    const { data: insertData, error: dbError } = await supabase.from('properties').insert({
       owner_id: user.id,
       title: form.title || `${form.type} en ${form.city || 'venta'}`,
       description: form.description,
@@ -127,7 +133,7 @@ export default function AgregarPage() {
       amenities: form.amenities,
       images: photos,
       active,
-    })
+    }).select('id').single()
 
     setSaving(false)
 
@@ -136,8 +142,63 @@ export default function AgregarPage() {
       return
     }
 
+    if (insertData?.id) {
+      setPublishedId(insertData.id)
+      setPublishedUserId(user.id)
+    }
     setSaved(true)
-    setTimeout(() => router.push('/app/mis-propiedades'), 1500)
+  }
+
+  if (saved && publishedId) {
+    const propertyUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/propiedades/${publishedId}${publishedUserId ? `?asesor=${publishedUserId}` : ''}`
+    const waMsg = `¡Mira esta propiedad que tengo disponible! 🏠\n${propertyUrl}`
+
+    async function copyLink() {
+      try {
+        await navigator.clipboard.writeText(propertyUrl)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2500)
+      } catch {}
+    }
+
+    return (
+      <div className="max-w-sm mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+        <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ background: '#16C79A15' }}>
+          <Check className="w-8 h-8" style={{ color: '#16C79A' }} />
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 mb-1">¡Propiedad publicada!</h2>
+        <p className="text-gray-500 text-sm mb-6">Tu ficha está lista. Compártela ahora con tus clientes.</p>
+
+        <div className="w-full bg-gray-50 rounded-xl border border-gray-200 px-4 py-3 mb-4 text-left">
+          <p className="text-xs text-gray-400 mb-1">Link de tu propiedad</p>
+          <p className="text-sm text-gray-700 break-all font-mono">{propertyUrl}</p>
+        </div>
+
+        <div className="w-full space-y-2">
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent(waMsg)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2"
+            style={{ background: '#25D366' }}
+          >
+            <MessageCircle className="w-4 h-4" />
+            Compartir por WhatsApp
+          </a>
+          <button
+            onClick={copyLink}
+            className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 border-2 transition-colors"
+            style={copied ? { borderColor: '#16C79A', color: '#16C79A' } : { borderColor: '#0F3460', color: '#0F3460' }}
+          >
+            {copied ? <><Check className="w-4 h-4" />¡Link copiado!</> : <><Copy className="w-4 h-4" />Copiar link</>}
+          </button>
+          <Link href="/app/mis-propiedades"
+            className="block w-full py-3 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">
+            Ver mis propiedades
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   if (saved) {
@@ -146,9 +207,9 @@ export default function AgregarPage() {
         <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ background: '#16C79A15' }}>
           <Check className="w-8 h-8" style={{ color: '#16C79A' }} />
         </div>
-        <h2 className="text-xl font-bold text-gray-900 mb-2">¡Propiedad publicada!</h2>
-        <p className="text-gray-500 text-sm">Tu ficha ya está disponible y lista para compartir</p>
-        <div className="w-6 h-6 border-2 border-blue-900 border-t-transparent rounded-full animate-spin mt-6" />
+        <h2 className="text-xl font-bold text-gray-900 mb-2">¡Propiedad guardada!</h2>
+        <p className="text-gray-500 text-sm mb-4">Tu borrador está guardado en Mis propiedades</p>
+        <Link href="/app/mis-propiedades" className="text-sm font-medium" style={{ color: '#0F3460' }}>Ver mis propiedades →</Link>
       </div>
     )
   }
@@ -315,59 +376,67 @@ export default function AgregarPage() {
         </div>
       )}
 
-      {/* Step 3: Fotos — acceso real a cámara */}
+      {/* Step 3: Fotos */}
       {step === 3 && (
         <div className="space-y-4">
-          <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-            <Camera className="w-4 h-4" />
-            Agrega fotos desde tu cámara o galería
-          </div>
+          {/* Hidden inputs — one for camera, one for gallery */}
+          <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={handlePhotoUpload} />
+          <input ref={galleryInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoUpload} />
 
-          {/* Hidden file input — accept images, allow multiple, capture camera on mobile */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-              className="hidden"
-            onChange={handlePhotoUpload}
-          />
+          {uploadingPhoto && (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-blue-50 border border-blue-100 text-blue-700 text-sm">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Subiendo fotos...
+            </div>
+          )}
 
-          <div className="grid grid-cols-3 gap-2">
-            {photos.map((photo, i) => (
-              <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200">
-                <img src={photo} alt="" className="w-full h-full object-cover" />
-                <button
-                  onClick={() => setPhotos((p) => p.filter((_, idx) => idx !== i))}
-                  className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center"
-                >
-                  <X className="w-3 h-3 text-white" />
-                </button>
-                {i === 0 && (
-                  <span className="absolute bottom-1 left-1 text-xs bg-black/60 text-white rounded px-1">Principal</span>
-                )}
-              </div>
-            ))}
+          {uploadError && (
+            <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">{uploadError}</div>
+          )}
 
-            {/* Add photo — triggers camera/gallery on mobile */}
+          {/* Photo grid */}
+          {photos.length > 0 && (
+            <div className="grid grid-cols-3 gap-2">
+              {photos.map((photo, i) => (
+                <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200">
+                  <img src={photo} alt="" className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => setPhotos((p) => p.filter((_, idx) => idx !== i))}
+                    className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center"
+                  >
+                    <X className="w-3 h-3 text-white" />
+                  </button>
+                  {i === 0 && (
+                    <span className="absolute bottom-1 left-1 text-xs bg-black/60 text-white rounded px-1">Principal</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Dual action buttons */}
+          <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => cameraInputRef.current?.click()}
               disabled={uploadingPhoto}
-              className="aspect-square rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-blue-900 hover:text-blue-900 transition-colors disabled:opacity-50"
+              className="flex flex-col items-center justify-center gap-2 py-5 rounded-xl border-2 border-dashed border-gray-300 text-gray-500 hover:border-blue-900 hover:text-blue-900 transition-colors disabled:opacity-50"
             >
-              {uploadingPhoto ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <>
-                  <Camera className="w-5 h-5" />
-                  <span className="text-xs">Agregar</span>
-                </>
-              )}
+              <Camera className="w-6 h-6" />
+              <span className="text-sm font-medium">Cámara</span>
+            </button>
+            <button
+              onClick={() => galleryInputRef.current?.click()}
+              disabled={uploadingPhoto}
+              className="flex flex-col items-center justify-center gap-2 py-5 rounded-xl border-2 border-dashed border-gray-300 text-gray-500 hover:border-blue-900 hover:text-blue-900 transition-colors disabled:opacity-50"
+            >
+              <ImageIcon className="w-6 h-6" />
+              <span className="text-sm font-medium">Galería</span>
             </button>
           </div>
 
           <p className="text-xs text-gray-400">
-            En el celular se abre la cámara directamente. La primera foto es la principal.
+            {photos.length === 0 ? 'Agrega al menos una foto. ' : `${photos.length} foto${photos.length > 1 ? 's' : ''} agregada${photos.length > 1 ? 's' : ''}. `}
+            La primera foto es la principal.
           </p>
         </div>
       )}

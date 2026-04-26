@@ -152,6 +152,69 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Competitor comparison */}
+      <section className="py-12 px-4 bg-white">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">¿Por qué Nido es diferente?</h2>
+            <p className="text-gray-500">Compara con las plataformas que ya conoces</p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr>
+                  <th className="text-left py-3 px-4 text-gray-500 font-medium"></th>
+                  <th className="py-3 px-4 text-center">
+                    <div className="text-gray-400 text-xs font-medium">EasyBroker</div>
+                    <div className="text-gray-900 font-bold text-base">$699</div>
+                    <div className="text-gray-400 text-xs">/asesor/mes</div>
+                  </th>
+                  <th className="py-3 px-4 text-center">
+                    <div className="text-gray-400 text-xs font-medium">Inmuebles24</div>
+                    <div className="text-gray-900 font-bold text-base">Variable</div>
+                    <div className="text-gray-400 text-xs">por propiedad</div>
+                  </th>
+                  <th className="py-3 px-4 text-center rounded-t-xl" style={{ background: '#0F3460' }}>
+                    <div className="text-blue-200 text-xs font-medium">Nido</div>
+                    <div className="text-white font-bold text-base">$299</div>
+                    <div className="text-blue-200 text-xs">plano por agencia</div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ['Propiedades ilimitadas', false, false, true],
+                  ['Precio fijo sin sorpresas', false, false, true],
+                  ['Link con tus datos', true, false, true],
+                  ['Foto desde celular en 3 min', false, false, true],
+                  ['30 días gratis sin tarjeta', false, false, true],
+                  ['Bolsa colaborativa', true, false, true],
+                ].map(([feature, eb, i24, nido], idx) => (
+                  <tr key={idx} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                    <td className="py-3 px-4 text-gray-700">{feature as string}</td>
+                    <td className="py-3 px-4 text-center">{eb ? '✓' : <span className="text-gray-300">✗</span>}</td>
+                    <td className="py-3 px-4 text-center">{i24 ? '✓' : <span className="text-gray-300">✗</span>}</td>
+                    <td className="py-3 px-4 text-center font-bold rounded-none" style={{ background: '#0F346010', color: '#16C79A' }}>
+                      {nido ? '✓' : <span className="text-gray-300">✗</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-500 mb-4">EasyBroker subió precios en enero 2026. Con Nido pagas <strong>$299 planos</strong> sin importar cuántos asesores o propiedades tenga tu agencia.</p>
+            <Link href="/auth/registro"
+              className="inline-block px-6 py-3 rounded-xl font-semibold text-white text-sm transition-opacity hover:opacity-90"
+              style={{ background: '#0F3460' }}>
+              Empieza gratis — sin tarjeta
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing */}
       <section className="py-12 px-4 bg-white">
         <div className="max-w-4xl mx-auto text-center">

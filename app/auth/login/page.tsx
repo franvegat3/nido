@@ -110,7 +110,19 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-500 mt-6">
+        <div className="mt-6 space-y-2">
+          {[
+            '💳 Precio plano — publica ilimitado sin pagar por propiedad',
+            '📲 Tu link personalizado con tus datos para compartir por WhatsApp',
+            '🎁 30 días gratis, sin tarjeta de crédito',
+          ].map((item) => (
+            <div key={item} className="flex items-start gap-2 text-xs text-gray-500">
+              <span>{item}</span>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-center text-sm text-gray-500 mt-4">
           ¿No tienes cuenta?{' '}
           <Link href="/auth/registro" className="font-medium" style={{ color: '#0F3460' }}>
             Empieza gratis
