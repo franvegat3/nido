@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Home, Check, ArrowRight } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 
 const PERKS = [
   'Inventario ilimitado de propiedades',
@@ -18,6 +19,7 @@ export default function RegistroPage() {
   const [step, setStep] = useState(1)
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -28,16 +30,50 @@ export default function RegistroPage() {
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }))
+    setError('')
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (step === 1) { setStep(2); return }
+
     setLoading(true)
-    // Simulate registration
-    await new Promise((r) => setTimeout(r, 1200))
+    setError('')
+
+    const { error: signUpError } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.password,
+      options: {
+        data: {
+          name: form.name,
+          phone: form.phone,
+          agency: form.agency || null,
+        },
+      },
+    })
+
+    if (signUpError) {
+      setError(signUpError.message === 'User already registered'
+        ? 'Este email ya tiene una cuenta. Inicia sesión.'
+        : 'Ocurrió un error. Intenta de nuevo.')
+      setLoading(false)
+      return
+    }
+
+    // Auto sign-in after registration
+    const { error: loginError } = await supabase.auth.signInWithPassword({
+      email: form.email,
+      password: form.password,
+    })
+
     setLoading(false)
+    if (loginError) {
+      router.push('/auth/login')
+      return
+    }
+
     router.push('/app')
+    router.refresh()
   }
 
   return (
@@ -67,6 +103,12 @@ export default function RegistroPage() {
             </div>
           </div>
 
+          {error && (
+            <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {step === 1 ? (
               <>
@@ -76,7 +118,7 @@ export default function RegistroPage() {
                     name="name"
                     type="text"
                     required
-                    placeholder="Jorge Morquecho"
+                    placeholder="Tu nombre"
                     value={form.name}
                     onChange={handleChange}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:border-blue-900 transition-colors"
@@ -88,7 +130,7 @@ export default function RegistroPage() {
                     name="email"
                     type="email"
                     required
-                    placeholder="jorge@tuinmobiliaria.mx"
+                    placeholder="tu@email.com"
                     value={form.email}
                     onChange={handleChange}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:border-blue-900 transition-colors"

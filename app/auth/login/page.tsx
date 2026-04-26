@@ -4,23 +4,38 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Home } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 
 export default function LoginPage() {
   const router = useRouter()
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [form, setForm] = useState({ email: '', password: '' })
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }))
+    setError('')
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    await new Promise((r) => setTimeout(r, 800))
-    setLoading(false)
+    setError('')
+
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: form.email,
+      password: form.password,
+    })
+
+    if (authError) {
+      setError('Email o contraseña incorrectos.')
+      setLoading(false)
+      return
+    }
+
     router.push('/app')
+    router.refresh()
   }
 
   return (
@@ -35,6 +50,12 @@ export default function LoginPage() {
 
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Bienvenido de vuelta</h1>
         <p className="text-gray-500 text-sm mb-6">Inicia sesión en tu cuenta</p>
+
+        {error && (
+          <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -68,7 +89,7 @@ export default function LoginPage() {
           </div>
 
           <div className="flex justify-end">
-            <Link href="#" className="text-xs font-medium" style={{ color: '#0F3460' }}>¿Olvidaste tu contraseña?</Link>
+            <Link href="/auth/reset" className="text-xs font-medium" style={{ color: '#0F3460' }}>¿Olvidaste tu contraseña?</Link>
           </div>
 
           <button
