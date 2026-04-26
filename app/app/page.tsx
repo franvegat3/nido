@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Building2, Eye, MessageCircle, PlusCircle, ChevronRight, Share2, TrendingUp } from 'lucide-react'
+import { Building2, Eye, MessageCircle, PlusCircle, ChevronRight, Share2, TrendingUp, X, Sparkles } from 'lucide-react'
 import { supabase, PropertyRow, Profile } from '@/lib/supabase'
 import { formatPrice } from '@/lib/data'
 
@@ -57,6 +57,7 @@ export default function DashboardPage() {
   const [properties, setProperties] = useState<PropertyRow[]>([])
   const [leadCount, setLeadCount] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -73,6 +74,13 @@ export default function DashboardPage() {
       setLeadCount(leadsRes.count ?? 0)
 
       const props = propertiesRes.data ?? []
+
+      // Show onboarding modal once per user
+      const onboardKey = `nido_onboarded_${user.id}`
+      if (!localStorage.getItem(onboardKey)) {
+        setShowOnboarding(true)
+        localStorage.setItem(onboardKey, '1')
+      }
 
       // Auto-create demo properties for new users with zero properties
       const demoKey = `nido_demo_${user.id}`
@@ -108,6 +116,51 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 max-w-4xl">
+      {/* Onboarding modal */}
+      {showOnboarding && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/40">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#0F3460' }}>
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-gray-900 text-base">¡Bienvenido a Nido!</h2>
+                  <p className="text-xs text-gray-500">Todo listo para empezar</p>
+                </div>
+              </div>
+              <button onClick={() => setShowOnboarding(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 mb-5">
+              {[
+                { num: '1', text: 'Ya tienes 2 propiedades de ejemplo — mira cómo se ven', color: '#0F3460' },
+                { num: '2', text: 'Agrégalas o edítalas con tus propiedades reales', color: '#E8A020' },
+                { num: '3', text: 'Comparte el link con tus datos para que los clientes te contacten', color: '#16C79A' },
+              ].map(({ num, text, color }) => (
+                <div key={num} className="flex items-start gap-3">
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ background: color }}>
+                    {num}
+                  </div>
+                  <p className="text-sm text-gray-700 pt-0.5">{text}</p>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setShowOnboarding(false)}
+              className="w-full py-3 rounded-xl font-semibold text-white text-sm transition-opacity hover:opacity-90"
+              style={{ background: '#0F3460' }}
+            >
+              ¡Entendido, empezar!
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Welcome */}
       <div>
         <h1 className="text-xl font-bold text-gray-900">Hola, {firstName}</h1>

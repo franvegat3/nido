@@ -290,6 +290,24 @@ function SharedPropertyView({
           </div>
         )}
 
+        {/* Map placeholder */}
+        <div className="mt-4 bg-white rounded-2xl p-5 border border-gray-100">
+          <h2 className="font-semibold text-gray-900 mb-3">Ubicación</h2>
+          <div className="rounded-xl overflow-hidden bg-blue-50 border border-blue-100 h-36 flex flex-col items-center justify-center gap-2">
+            <MapPin className="w-8 h-8" style={{ color: '#0F3460' }} />
+            <p className="text-sm font-medium text-gray-700">{colonia}, {city}</p>
+            <a
+              href={`https://maps.google.com/?q=${encodeURIComponent(`${colonia}, ${city}, ${state}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-medium px-3 py-1.5 rounded-lg text-white"
+              style={{ background: '#0F3460' }}
+            >
+              Ver en Google Maps
+            </a>
+          </div>
+        </div>
+
         {/* Contact form — only for real Supabase properties */}
         {showContactForm && (
           <div className="mt-4 bg-white rounded-2xl p-5 border border-gray-100">
