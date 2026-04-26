@@ -219,9 +219,6 @@ function SharedPropertyView({
 
         <div className="mt-5">
           <div className="flex items-center gap-2 mb-2">
-            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${operation === 'Venta' ? 'bg-blue-900 text-white' : 'bg-amber-500 text-white'}`}>
-              {operation === 'Venta' ? 'En Venta' : 'En Renta'}
-            </span>
             <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">{type}</span>
             <span className="ml-auto flex items-center gap-1 text-xs text-gray-400">
               <Eye className="w-3.5 h-3.5" />{views} vistas
@@ -231,9 +228,14 @@ function SharedPropertyView({
           <p className="flex items-center gap-1.5 text-gray-500 text-sm mb-3">
             <MapPin className="w-4 h-4" />{colonia}, {city}, {state}
           </p>
-          <div className="text-3xl font-bold" style={{ color: '#0F3460' }}>
-            {formatPrice(price)}
-            {operation === 'Renta' && <span className="text-base font-normal text-gray-500 ml-1">/mes</span>}
+          <div className="bg-white rounded-2xl px-4 py-3 border border-gray-100 inline-block mt-1">
+            <div className="text-xs font-semibold uppercase tracking-wide mb-0.5" style={{ color: operation === 'Venta' ? '#0F3460' : '#E8A020' }}>
+              {operation === 'Venta' ? 'En Venta' : 'En Renta'}
+            </div>
+            <div className="text-3xl font-bold leading-none" style={{ color: '#0F3460' }}>
+              {formatPrice(price)}
+              {operation === 'Renta' && <span className="text-base font-normal text-gray-500 ml-1">/mes</span>}
+            </div>
           </div>
         </div>
 
