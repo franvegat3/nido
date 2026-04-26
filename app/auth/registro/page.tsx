@@ -40,7 +40,7 @@ export default function RegistroPage() {
     setLoading(true)
     setError('')
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
       options: {
@@ -53,25 +53,27 @@ export default function RegistroPage() {
     })
 
     if (signUpError) {
-      setError(signUpError.message === 'User already registered'
-        ? 'Este email ya tiene una cuenta. Inicia sesión.'
-        : 'Ocurrió un error. Intenta de nuevo.')
+      const msg = signUpError.message
+      if (msg.includes('already registered') || msg.includes('already been registered')) {
+        setError('Este email ya tiene una cuenta. Inicia sesión.')
+      } else if (msg.includes('password')) {
+        setError('La contraseña debe tener al menos 6 caracteres.')
+      } else {
+        setError(`Error: ${msg}`)
+      }
       setLoading(false)
       return
     }
 
-    // Auto sign-in after registration
-    const { error: loginError } = await supabase.auth.signInWithPassword({
-      email: form.email,
-      password: form.password,
-    })
-
-    setLoading(false)
-    if (loginError) {
-      router.push('/auth/login')
+    // If Supabase requires email confirmation, session will be null
+    if (!signUpData.session) {
+      // Email confirmation required — redirect to a confirmation screen
+      setLoading(false)
+      router.push('/auth/confirmar?email=' + encodeURIComponent(form.email))
       return
     }
 
+    setLoading(false)
     router.push('/app')
     router.refresh()
   }
