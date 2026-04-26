@@ -1,43 +1,85 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { Search, Filter, Grid, List, X, SlidersHorizontal } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { Search, SlidersHorizontal, Grid, List, X } from 'lucide-react'
 import { Navbar } from '@/components/Navbar'
 import { PropertyCard } from '@/components/PropertyCard'
-import { PROPERTIES, ADVISORS, searchProperties, getAdvisor } from '@/lib/data'
+import { PROPERTIES, Property } from '@/lib/data'
+import { supabase, PropertyRow } from '@/lib/supabase'
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 
 const CITIES = ['Todas', 'Guadalajara', 'Monterrey', 'Ciudad de México', 'Zapopan', 'San Pedro Garza García']
-const TYPES = ['Todos', 'Casa', 'Departamento', 'Terreno', 'Local Comercial', 'Oficina']
+const TYPES = ['Todos', 'Casa', 'Departamento', 'Terreno', 'Local', 'Oficina']
 const OPERATIONS = ['Todos', 'Venta', 'Renta']
+
+function rowToProperty(row: PropertyRow): Property {
+  return {
+    id: row.id,
+    ownerId: row.owner_id,
+    title: row.title,
+    description: row.description,
+    type: row.type as Property['type'],
+    operation: row.operation,
+    price: row.price,
+    currency: 'MXN' as const,
+    area: row.area,
+    bedrooms: row.bedrooms,
+    bathrooms: row.bathrooms,
+    parking: row.parking,
+    address: row.address,
+    colonia: row.colonia,
+    city: row.city,
+    state: row.state,
+    amenities: row.amenities,
+    images: row.images,
+    views: row.views,
+    published: row.active,
+    sold: false,
+    lat: row.lat ?? 0,
+    lng: row.lng ?? 0,
+    createdAt: row.created_at,
+  }
+}
 
 function PropiedadesContent() {
   const searchParams = useSearchParams()
-  const initialQ = searchParams.get('q') ?? ''
-  const initialCity = searchParams.get('ciudad') ?? ''
-
-  const [keyword, setKeyword] = useState(initialQ)
-  const [city, setCity] = useState(initialCity)
+  const [allProperties, setAllProperties] = useState<Property[]>([])
+  const [loading, setLoading] = useState(true)
+  const [keyword, setKeyword] = useState(searchParams.get('q') ?? '')
+  const [city, setCity] = useState(searchParams.get('ciudad') ?? '')
   const [type, setType] = useState('')
   const [operation, setOperation] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [view, setView] = useState<'grid' | 'list'>('grid')
 
-  const results = useMemo(() => {
-    return searchProperties({
-      keyword: keyword || undefined,
-      city: city || undefined,
-      type: type || undefined,
-      operation: operation || undefined,
-    })
-  }, [keyword, city, type, operation])
+  useEffect(() => {
+    async function load() {
+      const { data } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('active', true)
+        .order('created_at', { ascending: false })
 
-  const activeFilters = [
-    city && city !== 'Todas' && city,
-    type && type !== 'Todos' && type,
-    operation && operation !== 'Todos' && operation,
-  ].filter(Boolean)
+      // Use real data if available, otherwise show mock data as demo
+      setAllProperties(data && data.length > 0 ? data.map(rowToProperty) : PROPERTIES)
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  const results = useMemo(() => {
+    return allProperties.filter((p) => {
+      const q = keyword.toLowerCase()
+      if (q && !p.title.toLowerCase().includes(q) && !p.city.toLowerCase().includes(q) && !p.colonia.toLowerCase().includes(q)) return false
+      if (city && city !== 'Todas' && p.city !== city) return false
+      if (type && type !== 'Todos' && p.type !== type) return false
+      if (operation && operation !== 'Todos' && p.operation !== operation) return false
+      return true
+    })
+  }, [allProperties, keyword, city, type, operation])
+
+  const activeFilters = [city && city !== 'Todas' && city, type && type !== 'Todos' && type, operation && operation !== 'Todos' && operation].filter(Boolean)
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -46,7 +88,6 @@ function PropiedadesContent() {
       {/* Search header */}
       <div className="bg-white border-b border-gray-200 sticky top-14 z-40">
         <div className="max-w-7xl mx-auto px-4 py-3 space-y-3">
-          {/* Search input */}
           <div className="flex gap-2">
             <div className="flex-1 flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2.5">
               <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
@@ -58,9 +99,7 @@ function PropiedadesContent() {
                 onChange={(e) => setKeyword(e.target.value)}
               />
               {keyword && (
-                <button onClick={() => setKeyword('')}>
-                  <X className="w-4 h-4 text-gray-400" />
-                </button>
+                <button onClick={() => setKeyword('')}><X className="w-4 h-4 text-gray-400" /></button>
               )}
             </div>
             <button
@@ -70,82 +109,58 @@ function PropiedadesContent() {
               <SlidersHorizontal className="w-4 h-4" />
               Filtros
               {activeFilters.length > 0 && (
-                <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-xs flex items-center justify-center">
-                  {activeFilters.length}
-                </span>
+                <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-xs flex items-center justify-center">{activeFilters.length}</span>
               )}
             </button>
             <div className="hidden md:flex items-center border border-gray-200 rounded-xl overflow-hidden">
-              <button onClick={() => setView('grid')} className={`p-2.5 ${view === 'grid' ? 'bg-blue-900 text-white' : 'bg-white text-gray-500'}`}>
-                <Grid className="w-4 h-4" />
-              </button>
-              <button onClick={() => setView('list')} className={`p-2.5 ${view === 'list' ? 'bg-blue-900 text-white' : 'bg-white text-gray-500'}`}>
-                <List className="w-4 h-4" />
-              </button>
+              <button onClick={() => setView('grid')} className={`p-2.5 ${view === 'grid' ? 'bg-blue-900 text-white' : 'bg-white text-gray-500'}`}><Grid className="w-4 h-4" /></button>
+              <button onClick={() => setView('list')} className={`p-2.5 ${view === 'list' ? 'bg-blue-900 text-white' : 'bg-white text-gray-500'}`}><List className="w-4 h-4" /></button>
             </div>
           </div>
 
           {/* Quick filter chips */}
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
             {OPERATIONS.map((op) => (
-              <button
-                key={op}
-                onClick={() => setOperation(op === 'Todos' ? '' : op)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${(op === 'Todos' && !operation) || operation === op ? 'bg-blue-900 text-white border-blue-900' : 'bg-white text-gray-600 border-gray-200'}`}
-              >
+              <button key={op} onClick={() => setOperation(op === 'Todos' ? '' : op)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${(op === 'Todos' && !operation) || operation === op ? 'bg-blue-900 text-white border-blue-900' : 'bg-white text-gray-600 border-gray-200'}`}>
                 {op}
               </button>
             ))}
             <div className="w-px h-6 bg-gray-200 self-center flex-shrink-0" />
             {TYPES.map((t) => (
-              <button
-                key={t}
-                onClick={() => setType(t === 'Todos' ? '' : t)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${(t === 'Todos' && !type) || type === t ? 'bg-blue-900 text-white border-blue-900' : 'bg-white text-gray-600 border-gray-200'}`}
-              >
+              <button key={t} onClick={() => setType(t === 'Todos' ? '' : t)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${(t === 'Todos' && !type) || type === t ? 'bg-blue-900 text-white border-blue-900' : 'bg-white text-gray-600 border-gray-200'}`}>
                 {t}
               </button>
             ))}
           </div>
 
-          {/* Extended filters */}
           {showFilters && (
             <div className="bg-gray-50 rounded-xl p-3 grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
                 <label className="text-xs font-medium text-gray-600 mb-1 block">Ciudad</label>
-                <select
-                  className="w-full text-sm bg-white border border-gray-200 rounded-lg px-2 py-1.5 outline-none"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value === 'Todas' ? '' : e.target.value)}
-                >
+                <select className="w-full text-sm bg-white border border-gray-200 rounded-lg px-2 py-1.5 outline-none" value={city || 'Todas'}
+                  onChange={(e) => setCity(e.target.value === 'Todas' ? '' : e.target.value)}>
                   {CITIES.map((c) => <option key={c}>{c}</option>)}
                 </select>
               </div>
               <div>
                 <label className="text-xs font-medium text-gray-600 mb-1 block">Tipo</label>
-                <select
-                  className="w-full text-sm bg-white border border-gray-200 rounded-lg px-2 py-1.5 outline-none"
-                  value={type || 'Todos'}
-                  onChange={(e) => setType(e.target.value === 'Todos' ? '' : e.target.value)}
-                >
+                <select className="w-full text-sm bg-white border border-gray-200 rounded-lg px-2 py-1.5 outline-none" value={type || 'Todos'}
+                  onChange={(e) => setType(e.target.value === 'Todos' ? '' : e.target.value)}>
                   {TYPES.map((t) => <option key={t}>{t}</option>)}
                 </select>
               </div>
               <div>
                 <label className="text-xs font-medium text-gray-600 mb-1 block">Operación</label>
-                <select
-                  className="w-full text-sm bg-white border border-gray-200 rounded-lg px-2 py-1.5 outline-none"
-                  value={operation || 'Todos'}
-                  onChange={(e) => setOperation(e.target.value === 'Todos' ? '' : e.target.value)}
-                >
+                <select className="w-full text-sm bg-white border border-gray-200 rounded-lg px-2 py-1.5 outline-none" value={operation || 'Todos'}
+                  onChange={(e) => setOperation(e.target.value === 'Todos' ? '' : e.target.value)}>
                   {OPERATIONS.map((o) => <option key={o}>{o}</option>)}
                 </select>
               </div>
               <div className="flex items-end">
-                <button
-                  onClick={() => { setKeyword(''); setCity(''); setType(''); setOperation(''); }}
-                  className="w-full py-1.5 rounded-lg text-sm text-gray-600 border border-gray-200 bg-white"
-                >
+                <button onClick={() => { setKeyword(''); setCity(''); setType(''); setOperation('') }}
+                  className="w-full py-1.5 rounded-lg text-sm text-gray-600 border border-gray-200 bg-white">
                   Limpiar filtros
                 </button>
               </div>
@@ -158,42 +173,46 @@ function PropiedadesContent() {
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-gray-600">
-            <span className="font-semibold text-gray-900">{results.length}</span> propiedades encontradas
+            {loading ? (
+              <span className="w-24 h-4 bg-gray-200 rounded animate-pulse inline-block" />
+            ) : (
+              <><span className="font-semibold text-gray-900">{results.length}</span> propiedades encontradas</>
+            )}
           </p>
           {activeFilters.length > 0 && (
             <div className="flex gap-1.5">
               {(activeFilters as string[]).map((f) => (
-                <span key={f} className="text-xs bg-blue-50 text-blue-900 border border-blue-100 rounded-full px-2 py-0.5">
-                  {f}
-                </span>
+                <span key={f} className="text-xs bg-blue-50 text-blue-900 border border-blue-100 rounded-full px-2 py-0.5">{f}</span>
               ))}
             </div>
           )}
         </div>
 
-        {results.length === 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 h-72 animate-pulse" />
+            ))}
+          </div>
+        ) : results.length === 0 ? (
           <div className="text-center py-16">
             <Search className="w-12 h-12 text-gray-300 mx-auto mb-3" />
             <h3 className="text-lg font-semibold text-gray-700 mb-1">No encontramos propiedades</h3>
             <p className="text-gray-400 text-sm">Prueba con otros filtros o palabras clave</p>
-            <button
-              onClick={() => { setKeyword(''); setCity(''); setType(''); setOperation(''); }}
-              className="mt-4 px-4 py-2 rounded-xl text-sm font-medium text-white"
-              style={{ background: '#0F3460' }}
-            >
+            <button onClick={() => { setKeyword(''); setCity(''); setType(''); setOperation('') }}
+              className="mt-4 px-4 py-2 rounded-xl text-sm font-medium text-white" style={{ background: '#0F3460' }}>
               Ver todas las propiedades
             </button>
           </div>
         ) : (
           <div className={view === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-4'}>
             {results.map((property) => (
-              <PropertyCard key={property.id} property={property} advisor={getAdvisor(property.ownerId)} compact={view === 'list'} />
+              <PropertyCard key={property.id} property={property} compact={view === 'list'} />
             ))}
           </div>
         )}
       </main>
 
-      {/* Mobile spacer */}
       <div className="h-16 md:hidden" />
     </div>
   )

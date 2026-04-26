@@ -1,7 +1,7 @@
 export type Property = {
   id: string
   title: string
-  type: 'Casa' | 'Departamento' | 'Terreno' | 'Local Comercial' | 'Oficina'
+  type: 'Casa' | 'Departamento' | 'Terreno' | 'Local Comercial' | 'Local' | 'Oficina' | 'Bodega'
   operation: 'Venta' | 'Renta'
   price: number
   currency: 'MXN'

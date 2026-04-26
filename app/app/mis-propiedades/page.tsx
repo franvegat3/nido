@@ -1,17 +1,48 @@
-import Link from 'next/link'
-import { PlusCircle, Eye, Share2, Edit, Trash2, ToggleLeft, ToggleRight } from 'lucide-react'
-import { PROPERTIES, ADVISORS, formatPrice } from '@/lib/data'
+'use client'
 
-const advisor = ADVISORS[0]
-const myProperties = PROPERTIES.filter((p) => p.ownerId === advisor.id)
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { PlusCircle, Eye, Share2, Edit } from 'lucide-react'
+import { supabase, PropertyRow } from '@/lib/supabase'
+import { formatPrice } from '@/lib/data'
 
 export default function MisPropiedadesPage() {
+  const [properties, setProperties] = useState<PropertyRow[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setLoading(false); return }
+
+      const { data } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('owner_id', user.id)
+        .order('created_at', { ascending: false })
+
+      setProperties(data ?? [])
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="bg-white rounded-2xl border border-gray-100 h-24 animate-pulse" />
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-4xl space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Mis propiedades</h1>
-          <p className="text-sm text-gray-500">{myProperties.length} propiedades en tu inventario</p>
+          <p className="text-sm text-gray-500">{properties.length} propiedades en tu inventario</p>
         </div>
         <Link
           href="/app/agregar"
@@ -23,24 +54,34 @@ export default function MisPropiedadesPage() {
         </Link>
       </div>
 
-      {myProperties.length === 0 ? (
+      {properties.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
           <p className="text-gray-400 mb-4">Sin propiedades aún</p>
-          <Link href="/app/agregar" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white" style={{ background: '#0F3460' }}>
+          <Link
+            href="/app/agregar"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
+            style={{ background: '#0F3460' }}
+          >
             <PlusCircle className="w-4 h-4" />
             Agregar primera propiedad
           </Link>
         </div>
       ) : (
         <div className="space-y-3">
-          {myProperties.map((property) => (
+          {properties.map((property) => (
             <div key={property.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="flex gap-0">
                 {/* Image */}
                 <div className="w-28 h-24 flex-shrink-0 relative">
-                  <img src={property.images[0]} alt={property.title} className="w-full h-full object-cover" />
-                  <div className={`absolute top-2 left-2 text-xs font-semibold px-1.5 py-0.5 rounded-full ${property.published ? 'bg-green-500 text-white' : 'bg-gray-400 text-white'}`}>
-                    {property.published ? 'Activa' : 'Borrador'}
+                  {property.images[0] ? (
+                    <img src={property.images[0]} alt={property.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                      <span className="text-gray-300 text-xs">Sin foto</span>
+                    </div>
+                  )}
+                  <div className={`absolute top-2 left-2 text-xs font-semibold px-1.5 py-0.5 rounded-full ${property.active ? 'bg-green-500 text-white' : 'bg-gray-400 text-white'}`}>
+                    {property.active ? 'Activa' : 'Borrador'}
                   </div>
                 </div>
 
@@ -55,7 +96,6 @@ export default function MisPropiedadesPage() {
                         {property.operation === 'Renta' && <span className="text-xs font-normal text-gray-400">/mes</span>}
                       </p>
                     </div>
-
                     <div className="flex items-center gap-1 text-xs text-gray-400 flex-shrink-0">
                       <Eye className="w-3.5 h-3.5" />
                       {property.views}
